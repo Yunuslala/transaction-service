@@ -3,6 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableRow, Paper, Typography, Ci
 import { ErrorToast } from './Popup';
 import { useNavigate } from "react-router-dom";
 import axios from 'axios';
+import Transaction from './Transaction';
 
 const DashBoard = () => {
   const url="https://orderstockexchangebackend.onrender.com";
@@ -11,7 +12,7 @@ const DashBoard = () => {
   const [pendingOrders, setPendingOrders] = useState([]);
   const [completedOrders, setCompletedOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-
+  const [flag,setflag]=useState(false);
   useEffect(() => {
     if (!token) {
       ErrorToast("Please logged in");
@@ -21,7 +22,7 @@ const DashBoard = () => {
       return () => clearTimeout(timer);
     }
     fetchOrders();
-  }, [token]);
+  }, [token,flag]);
 
   const fetchOrders = async () => {
     try {
@@ -59,17 +60,13 @@ const DashBoard = () => {
 
   return (
     <div className="container mx-auto p-4">
-    <div className="text-2xl w-[80%] mx-auto font-bold mb-7   flex items-center justify-between">
+    <div>
+      <Transaction flag={flag} setflag={setflag} />
+    </div>
+    <div className="text-2xl w-[80%] mx-auto font-bold mb-7   flex items-center justify-center">
     <Typography variant="h4"  gutterBottom>
         Pending and Completed Orders
       </Typography>
-      <button
-            onClick={()=>navigate("/transactions-form")}
-            type="submit"
-            className="w-[20%] px-4 py-2 font-bold text-white bg-indigo-500 rounded-lg hover:bg-indigo-700"
-          >
-           Transaction Form
-          </button>
     </div>
       
 
@@ -78,32 +75,55 @@ const DashBoard = () => {
       <Typography variant="h5" className="mt-8 mb-4">
         Pending Orders
       </Typography>
-      <Paper className="overflow-hidden mb-8">
+      <div className="flex">
+      {/* Buyer Table */}
+      <Paper className="overflow-hidden mb-8 w-full">
         <Table>
           <TableHead>
             <TableRow>
               <TableCell>Buyer Qty</TableCell>
               <TableCell>Buyer Name</TableCell>
               <TableCell>Buyer Price</TableCell>
-              <TableCell>Seller Price</TableCell>
-              <TableCell>Seller Name</TableCell>
-              <TableCell>Seller Qty</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {pendingOrders?.map((order, index) => (
-              <TableRow key={index}>
-                <TableCell>{order.buyerQty}</TableCell>
-                <TableCell>{order?.buyer?.username}</TableCell>
-                <TableCell>{order.buyerPrice}</TableCell>
-                <TableCell>{order.sellerPrice}</TableCell>
-                <TableCell>{order?.seller?.username}</TableCell>
-                <TableCell>{order.sellerQty}</TableCell>
-              </TableRow>
+              order.buyer && (
+                <TableRow key={index}>
+                  <TableCell>{order.buyerQty}</TableCell>
+                  <TableCell>{order?.buyer?.username}</TableCell>
+                  <TableCell>{order.buyerPrice}</TableCell>
+                </TableRow>
+              )
             ))}
           </TableBody>
         </Table>
       </Paper>
+
+      {/* Seller Table */}
+      <Paper className="overflow-hidden mb-8 w-full">
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell >Seller Price</TableCell>
+              <TableCell >Seller Name</TableCell>
+              <TableCell >Seller Qty</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {pendingOrders?.map((order, index) => (
+              order.seller && (
+                <TableRow key={index}>
+                  <TableCell style={{ color: '#B91C1C' }}>{order.sellerPrice}</TableCell>
+                  <TableCell style={{ color: '#B91C1C' }}>{order?.seller?.username}</TableCell>
+                  <TableCell style={{ color: '#B91C1C' }}>{order.sellerQty}</TableCell>
+                </TableRow>
+              )
+            ))}
+          </TableBody>
+        </Table>
+      </Paper>
+    </div>
 
       {/* Completed Orders */}
       <Typography variant="h5" className="mt-8 mb-4">

@@ -53,29 +53,63 @@ exports.CreateTransaction = async (req, res) => {
                 // Create or update the buyer order
                 const remainingBuyerQty = buyerQty - matchedQty;
                 if (remainingBuyerQty > 0) {
-                    await PendingOrder.create({
-                        buyerId: UserId,
-                        buyerQty: remainingBuyerQty,
-                        buyerPrice,
-                        orderStatus: 'pending'
-                    }, { transaction: t });
+                    const existingBuyerOrder = await PendingOrder.findOne({
+                        where: {
+                            buyerId: UserId,
+                            buyerPrice,
+                            orderStatus: 'pending'
+                        },
+                        lock: t.LOCK.UPDATE,
+                        transaction: t
+                    });
+
+                    if (existingBuyerOrder) {
+                        await existingBuyerOrder.update({
+                            buyerQty: existingBuyerOrder.buyerQty + remainingBuyerQty
+                        }, { transaction: t });
+                    } else {
+                        await PendingOrder.create({
+                            buyerId: UserId,
+                            buyerQty: remainingBuyerQty,
+                            buyerPrice,
+                            orderStatus: 'pending'
+                        }, { transaction: t });
+                    }
                 }
 
                 await t.commit();
                 return res.status(201).send({ success: true, msg: "Order matched and completed.", qty: matchedQty });
             } else {
-                // If no matching seller order, create a new buyer order
-                const newOrder = await PendingOrder.create({
-                    buyerId: UserId,
-                    buyerQty,
-                    buyerPrice,
-                    orderStatus: 'pending'
-                }, { transaction: t });
+                // If no matching seller order, check for existing buyer order with the same price
+                const existingBuyerOrder = await PendingOrder.findOne({
+                    where: {
+                        buyerId: UserId,
+                        buyerPrice,
+                        orderStatus: 'pending'
+                    },
+                    lock: t.LOCK.UPDATE,
+                    transaction: t
+                });
 
-                await t.commit();
-                return res.status(201).send({ success: true, msg: "Buyer order added to Pending Orders.", order: newOrder });
+                if (existingBuyerOrder) {
+                    await existingBuyerOrder.update({
+                        buyerQty: existingBuyerOrder.buyerQty + buyerQty
+                    }, { transaction: t });
+                    await t.commit();
+                    return res.status(200).send({ success: true, msg: "Buyer order quantity updated.", order: existingBuyerOrder });
+                } else {
+                    const newOrder = await PendingOrder.create({
+                        buyerId: UserId,
+                        buyerQty,
+                        buyerPrice,
+                        orderStatus: 'pending'
+                    }, { transaction: t });
+
+                    await t.commit();
+                    return res.status(201).send({ success: true, msg: "Buyer order added to Pending Orders.", order: newOrder });
+                }
             }
-        } else if (type === "seller" ) {
+        } else if (type === "seller") {
             console.log("Seller order:", { UserId, sellerQty, sellerPrice });
             if(role=="seller"){
                 return res.status(200).send({success:false,msg:"you are not authorised for selling log as seller"})
@@ -111,27 +145,61 @@ exports.CreateTransaction = async (req, res) => {
                 // Create or update the seller order
                 const remainingSellerQty = sellerQty - matchedQty;
                 if (remainingSellerQty > 0) {
-                    await PendingOrder.create({
-                        sellerId: UserId,
-                        sellerQty: remainingSellerQty,
-                        sellerPrice,
-                        orderStatus: 'pending'
-                    }, { transaction: t });
+                    const existingSellerOrder = await PendingOrder.findOne({
+                        where: {
+                            sellerId: UserId,
+                            sellerPrice,
+                            orderStatus: 'pending'
+                        },
+                        lock: t.LOCK.UPDATE,
+                        transaction: t
+                    });
+
+                    if (existingSellerOrder) {
+                        await existingSellerOrder.update({
+                            sellerQty: existingSellerOrder.sellerQty + remainingSellerQty
+                        }, { transaction: t });
+                    } else {
+                        await PendingOrder.create({
+                            sellerId: UserId,
+                            sellerQty: remainingSellerQty,
+                            sellerPrice,
+                            orderStatus: 'pending'
+                        }, { transaction: t });
+                    }
                 }
 
                 await t.commit();
                 return res.status(201).send({ success: true, msg: "Order partially/fully matched and completed.", qty: matchedQty });
             } else {
-                // If no matching buyer order, create a new seller order
-                const newOrder = await PendingOrder.create({
-                    sellerId: UserId,
-                    sellerQty,
-                    sellerPrice,
-                    orderStatus: 'pending'
-                }, { transaction: t });
+                // If no matching buyer order, check for existing seller order with the same price
+                const existingSellerOrder = await PendingOrder.findOne({
+                    where: {
+                        sellerId: UserId,
+                        sellerPrice,
+                        orderStatus: 'pending'
+                    },
+                    lock: t.LOCK.UPDATE,
+                    transaction: t
+                });
 
-                await t.commit();
-                return res.status(201).send({ success: true, msg: "Seller order added to Pending Orders.", order: newOrder });
+                if (existingSellerOrder) {
+                    await existingSellerOrder.update({
+                        sellerQty: existingSellerOrder.sellerQty + sellerQty
+                    }, { transaction: t });
+                    await t.commit();
+                    return res.status(200).send({ success: true, msg: "Seller order quantity updated.", order: existingSellerOrder });
+                } else {
+                    const newOrder = await PendingOrder.create({
+                        sellerId: UserId,
+                        sellerQty,
+                        sellerPrice,
+                        orderStatus: 'pending'
+                    }, { transaction: t });
+
+                    await t.commit();
+                    return res.status(201).send({ success: true, msg: "Seller order added to Pending Orders.", order: newOrder });
+                }
             }
         } else {
             await t.rollback();
@@ -143,6 +211,7 @@ exports.CreateTransaction = async (req, res) => {
         return res.status(500).send({ success: false, err: error });
     }
 };
+
 
 
 

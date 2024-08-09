@@ -1,7 +1,7 @@
 const express=require("express");
 const app=express();
 const cors=require("cors");
-const {connection}=require("./config/db");
+
 const { UserRouter } = require("./routers/User.router");
 const { transactionRouter } = require("./routers/transactions.router");
 const { sequelize } = require('./models/model');

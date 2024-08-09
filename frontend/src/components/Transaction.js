@@ -12,7 +12,7 @@ import { ErrorToast, SuccessToast } from "./Popup";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-const TransactionForm = () => {
+const Transaction = ({flag,setflag}) => {
   const navigate = useNavigate();
   const url = "https://orderstockexchangebackend.onrender.com";
   const token = localStorage.getItem("transactionToken");
@@ -48,7 +48,7 @@ const TransactionForm = () => {
       });
       if (data.success) {
         SuccessToast(data.msg);
-        navigate("/DashBoard");
+        setflag((prev)=>!prev)
       } else {
         console.log("error", data);
         ErrorToast(data?.msg);
@@ -61,18 +61,6 @@ const TransactionForm = () => {
 
   return (
     <div className="container mx-auto p-6">
-     <div className="text-2xl w-[80%] mx-auto font-bold mb-7   flex items-center justify-between">
-    <Typography variant="h4"  gutterBottom>
-        Transactions Form Pannel
-      </Typography>
-      <button
-            onClick={()=>navigate("/DashBoard")}
-            type="submit"
-            className="w-[20%] px-4 py-2 font-bold text-white bg-indigo-500 rounded-lg hover:bg-indigo-700"
-          >
-           DashBoard
-          </button>
-    </div>
       <form className="space-y-4 w-[50%] m-auto" onSubmit={handleSubmit}>
         <FormControl fullWidth variant="outlined" required>
           <InputLabel>Transaction Type</InputLabel>
@@ -136,4 +124,4 @@ const TransactionForm = () => {
   );
 };
 
-export default TransactionForm;
+export default Transaction;
